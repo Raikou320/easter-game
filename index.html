@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rai Game 1</title>
+    <script src="https://raikou320.github.io/rai.js/rai.sound.min.js"></script>
+    <script src="https://raikou320.github.io/rai.js/rai.min.js"></script>
+  </head>
+  <body>
+    <style>
+      canvas {
+        width: min(80vw, 80vh, 400px);
+        height: min(80vw, 80vh, 400px);
+      }
+      #controls {
+        position: fixed;
+        bottom: 10%;
+        left: 50%;
+        transform: translateX(-50%);
+        display: grid;
+        grid-template-columns: repeat(3, min(15vw, 15vh, 60px));
+        grid-template-rows: repeat(3, min(15vw, 15vh, 60px));
+        gap: 10px;
+        justify-content: center;
+        align-items: center;
+      }
+
+      #arrow-up {
+        grid-column: 2;
+        grid-row: 1;
+      }
+      #arrow-left {
+        grid-column: 1;
+        grid-row: 2;
+      }
+      #arrow-right {
+        grid-column: 3;
+        grid-row: 2;
+      }
+      #arrow-down {
+        grid-column: 2;
+        grid-row: 3;
+      }
+
+      button {
+        font-size: 24px;
+        padding: 10px;
+        border-radius: 10px;
+        background: #ccc;
+        border: none;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      }
+
+      @media (hover: hover) and (pointer: fine) {
+        #controls {
+          display: none;
+        }
+      }
+    </style>
+    <div id="controls">
+      <button id="arrow-up">↑</button>
+      <button id="arrow-left">←</button>
+      <button id="arrow-right">→</button>
+      <button id="arrow-down">↓</button>
+    </div>
+    <script>
+      let playerImg, coinImg, coinSound, victorySound;
+      let victorySoundPlayed = false;
+      class Player {
+        constructor(x, y) {
+          this.x = x;
+          this.y = y;
+          this.score = 0;
+          this.width = 48;
+          this.height = 64;
+        }
+        draw() {
+          image(playerImg, this.x, this.y, this.width, this.height);
+        }
+        move() {
+          if (isKeyDown(LEFT_ARROW) && this.x > 0) {
+            this.x -= 5;
+          } else if (isKeyDown(RIGHT_ARROW) && this.x < width - this.width) {
+            this.x += 5;
+          }
+          if (isKeyDown(UP_ARROW) && this.y > 0) {
+            this.y -= 5;
+          } else if (isKeyDown(DOWN_ARROW) && this.y < height - this.height) {
+            this.y += 5;
+          }
+        }
+        collectCoin(coins) {
+          for (let i = coins.length - 1; i >= 0; i--) {
+            if (
+              this.x < coins[i].x + coins[i].width &&
+              this.x + this.width > coins[i].x &&
+              this.y < coins[i].y + coins[i].height &&
+              this.y + this.height > coins[i].y
+            ) {
+              this.score++;
+              coins.splice(i, 1);
+              coinSound.currentTime = 0;
+              playAudio(coinSound);
+            }
+          }
+        }
+      }
+      class Coin {
+        constructor(x, y) {
+          this.x = x;
+          this.y = y;
+          this.width = 30;
+          this.height = 32;
+        }
+        draw() {
+          image(coinImg, this.x, this.y, this.width, this.height);
+        }
+      }
+      let player = new Player(0, 320);
+      let coins = [];
+      for (let i = 0; i < 10; i++) {
+        let x = Math.floor(Math.random() * 300);
+        let y = Math.floor(Math.random() * 300);
+        coins.push(new Coin(x, y));
+      }
+      function raiLoad() {
+        playerImg = loadImage("player.svg");
+        coinImg = loadImage("coin.svg");
+        coinSound = loadAudio("coin.wav");
+        victorySound = loadAudio("victory.wav")
+      }
+      function raiSetup() {
+        createCanvas(400, 400);
+      }
+      function raiDraw() {
+        background("rgb(220, 220, 220)");
+        player.draw();
+        player.move();
+        player.collectCoin(coins);
+        coins.forEach((coin) => {
+          coin.draw();
+        });
+        fontSize("30px");
+        fontFamily("Consolas, monospace");
+        fill("black");
+        text(`Score: ${player.score}`, 10, 30);
+        checkVictory()
+      }
+      function checkVictory() {
+        if (coins.length < 1 && !victorySoundPlayed) {
+          victorySoundPlayed = true;
+          playAudio(victorySound);
+        }
+      }
+      let isMovingUp = false, 
+        isMovingDown = false,
+        isMovingLeft = false,
+        isMovingRight = false;
+      let up, down, left, right;
+      function moveDown() {
+        if (isMovingDown) {
+          if (player.y < height - player.height) player.y += 5;
+          down = requestAnimationFrame(moveDown);
+        }
+      }
+
+      function moveRight() {
+        if (isMovingRight) {
+          if (player.x < width - player.width) player.x += 5;
+          right = requestAnimationFrame(moveRight);
+        }
+      }
+      function moveLeft() {
+        if (isMovingLeft) {
+          if (player.x > 0) player.x -= 5;
+          left = requestAnimationFrame(moveLeft);
+        }
+      }
+      function moveUp() {
+        if (isMovingUp) {
+          if (player.y > 0) player.y -= 5;
+          up = requestAnimationFrame(moveUp);
+        }
+      }
+      function bindControl(btnId, startCallback, stopCallback) {
+        const btn = document.getElementById(btnId);
+        btn.addEventListener("mousedown", startCallback);
+        btn.addEventListener("mouseup", stopCallback);
+        btn.addEventListener("mouseleave", stopCallback);
+        btn.addEventListener("touchstart", (e) => {
+          e.preventDefault();
+          startCallback();
+        });
+        btn.addEventListener("touchend", (e) => {
+          e.preventDefault();
+          stopCallback();
+        });
+      }
+      bindControl(
+        "arrow-up",
+        () => {
+          if (!isMovingUp) {
+            isMovingUp = true;
+            moveUp();
+          }
+        },
+        () => {
+          isMovingUp = false;
+          cancelAnimationFrame(up);
+        }
+      );
+      bindControl(
+        "arrow-down",
+        () => {
+          if (!isMovingDown) {
+            isMovingDown = true;
+            moveDown();
+          }
+        },
+        () => {
+          isMovingDown = false;
+          cancelAnimationFrame(down);
+        }
+      );
+      bindControl(
+        "arrow-left",
+        () => {
+          if (!isMovingLeft) {
+            isMovingLeft = true;
+            moveLeft();
+          }
+        },
+        () => {
+          isMovingLeft = false;
+          cancelAnimationFrame(left);
+        }
+      );
+      bindControl(
+        "arrow-right",
+        () => {
+          if (!isMovingRight) {
+            isMovingRight = true;
+            moveRight();
+          }
+        },
+        () => {
+          isMovingRight = false;
+          cancelAnimationFrame(right);
+        }
+      );
+    </script>
+  </body>
+</html>
