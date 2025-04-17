@@ -148,9 +148,14 @@
         checkVictory()
       }
       function checkVictory() {
-        if (coins.length < 1 && !victorySoundPlayed) {
-          victorySoundPlayed = true;
+        if (coins.length < 1) {
+          if (!victorySoundPlayed) {
+            victorySoundPlayed = true;
           playAudio(victorySound);
+          }
+          fontSize('35px')
+          fontFamily("Consolas, monospace")
+          text("Joyeuse Pâques", width / 2 - 145, height / 2)
         }
       }
       let isMovingUp = false, 
